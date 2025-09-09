@@ -4,6 +4,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
+import clientRoutes from './routes/clients';
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(requestLogger);
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/clients', clientRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

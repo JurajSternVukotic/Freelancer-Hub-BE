@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import clientRoutes from './routes/clients';
 import projectRoutes from './routes/projects';
+import taskRoutes from './routes/tasks';
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/clients', clientRoutes);
 app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/tasks', taskRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

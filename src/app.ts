@@ -7,6 +7,8 @@ import userRoutes from './routes/users';
 import clientRoutes from './routes/clients';
 import projectRoutes from './routes/projects';
 import taskRoutes from './routes/tasks';
+import timerRoutes from './routes/timer';
+import timeEntryRoutes from './routes/timeEntries';
 
 const app = express();
 
@@ -19,6 +21,8 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/clients', clientRoutes);
 app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/timer', timerRoutes);
+app.use('/api/v1/time-entries', timeEntryRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

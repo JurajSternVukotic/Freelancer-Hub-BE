@@ -10,6 +10,8 @@ import taskRoutes from './routes/tasks';
 import timerRoutes from './routes/timer';
 import timeEntryRoutes from './routes/timeEntries';
 import invoiceRoutes from './routes/invoices';
+import expenseRoutes from './routes/expenses';
+import financialRoutes from './routes/financial';
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/timer', timerRoutes);
 app.use('/api/v1/time-entries', timeEntryRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
+app.use('/api/v1/expenses', expenseRoutes);
+app.use('/api/v1/financial', financialRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

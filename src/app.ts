@@ -12,6 +12,8 @@ import timeEntryRoutes from './routes/timeEntries';
 import invoiceRoutes from './routes/invoices';
 import expenseRoutes from './routes/expenses';
 import financialRoutes from './routes/financial';
+import proposalRoutes from './routes/proposals';
+import retainerRoutes from './routes/retainers';
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use('/api/v1/time-entries', timeEntryRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
 app.use('/api/v1/expenses', expenseRoutes);
 app.use('/api/v1/financial', financialRoutes);
+app.use('/api/v1/proposals', proposalRoutes);
+app.use('/api/v1/retainers', retainerRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

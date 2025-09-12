@@ -15,6 +15,8 @@ import financialRoutes from './routes/financial';
 import proposalRoutes from './routes/proposals';
 import retainerRoutes from './routes/retainers';
 import reportRoutes from './routes/reports';
+import clientAuthRoutes from './routes/clientAuth';
+import clientPortalRoutes from './routes/clientPortal';
 
 const app = express();
 
@@ -35,6 +37,8 @@ app.use('/api/v1/financial', financialRoutes);
 app.use('/api/v1/proposals', proposalRoutes);
 app.use('/api/v1/retainers', retainerRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/client-auth', clientAuthRoutes);
+app.use('/api/v1/client-portal', clientPortalRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import { notFoundHandler } from './middleware/notFoundHandler';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import clientRoutes from './routes/clients';
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 export default app;

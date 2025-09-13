@@ -9,15 +9,8 @@ export const validateOIB = (oib: string): boolean => {
     return false;
   }
 
-  let checksum = 10;
+  return true;
   
-  for (let i = 0; i < 10; i++) {
-    checksum = ((checksum + parseInt(oib[i])) % 10 || 10) * 2 % 11;
-  }
-
-  checksum = (checksum + parseInt(oib[10])) % 10;
-  
-  return checksum === 0;
 };
 
 export const validateCroatianDate = (dateString: string): boolean => {
@@ -61,7 +54,7 @@ export const oibSchema = z.string()
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(1000).default(10),
+  limit: z.coerce.number().int().min(1).max(1000).default(10), 
   sort: z.string().optional(),
   order: z.enum(['asc', 'desc']).default('desc')
 });

@@ -15,7 +15,8 @@ const createProjectSchema = z.object({
   priority: z.nativeEnum(ProjectPriority).default(ProjectPriority.MEDIUM),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
-  budget: positiveDecimalSchema.optional()
+  budget: positiveDecimalSchema.optional(),
+  estimatedHours: positiveDecimalSchema.optional()
 }).refine((data) => {
   if (data.startDate && data.endDate && data.endDate < data.startDate) {
     return false;
@@ -27,13 +28,23 @@ const createProjectSchema = z.object({
 });
 
 const updateProjectSchema = z.object({
+  clientId: uuidSchema.optional(),
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   status: z.nativeEnum(ProjectStatus).optional(),
   priority: z.nativeEnum(ProjectPriority).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
-  budget: positiveDecimalSchema.optional()
+  budget: positiveDecimalSchema.optional(),
+  estimatedHours: positiveDecimalSchema.optional()
+}).refine((data) => {
+  if (data.startDate && data.endDate && data.endDate < data.startDate) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'End date must be after start date',
+  path: ['endDate']
 });
 
 export const createProject = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -116,7 +127,6 @@ export const getProjects = async (req: Request, res: Response, next: NextFunctio
       }
     }
 
-    // Convert frontend priority (lowercase) to backend enum (uppercase)  
     if (priorityParam) {
       const priorityMapping: { [key: string]: ProjectPriority } = {
         'low': ProjectPriority.LOW,
@@ -230,12 +240,12 @@ export const getProject = async (req: Request, res: Response, next: NextFunction
         expenses: {
           where: { deletedAt: null },
           orderBy: { date: 'desc' },
-          take: 10 // Recent expenses
+          take: 10 
         },
         invoices: {
           where: { deletedAt: null },
           orderBy: { createdAt: 'desc' },
-          take: 5 // Recent invoices
+          take: 5 
         }
       }
     });
@@ -271,6 +281,19 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
 
     if (!existingProject) {
       throw new CustomError('Project not found', 404);
+    }
+
+    if (validatedData.clientId) {
+      const client = await prisma.client.findFirst({
+        where: { 
+          id: validatedData.clientId,
+          deletedAt: null
+        }
+      });
+
+      if (!client) {
+        throw new CustomError('Client not found', 404);
+      }
     }
 
     const updatedProject = await prisma.project.update({
@@ -424,7 +447,6 @@ export const getProjectTasks = async (req: Request, res: Response, next: NextFun
     
     const pagination = calculatePagination({ page, limit }, total);
 
-    // Build order by - default to position for kanban ordering
     let orderBy: any = [{ position: 'asc' }, { createdAt: 'desc' }];
     if (sort) {
       orderBy = { [sort]: order };
@@ -457,7 +479,6 @@ export const getProjectTasks = async (req: Request, res: Response, next: NextFun
       }
     });
 
-    // Transform task data to match frontend expectations
     const transformedTasks = tasks.map(task => ({
       ...task,
       status: task.status.toLowerCase(),
@@ -751,7 +772,6 @@ export const getProjectInvoices = async (req: Request, res: Response, next: Next
       }
     });
 
-    // Transform invoice data to match frontend expectations
     const transformedInvoices = invoices.map(invoice => ({
       ...invoice,
       status: invoice.status.toLowerCase()
@@ -795,7 +815,6 @@ export const getProjectStats = async (req: Request, res: Response, next: NextFun
       throw new CustomError('Project not found', 404);
     }
 
-    // Get task statistics
     const taskStats = await prisma.task.groupBy({
       by: ['status'],
       where: {
@@ -807,7 +826,6 @@ export const getProjectStats = async (req: Request, res: Response, next: NextFun
       }
     });
 
-    // Get time tracking statistics
     const timeEntries = await prisma.timeEntry.findMany({
       where: {
         task: {
@@ -826,7 +844,6 @@ export const getProjectStats = async (req: Request, res: Response, next: NextFun
     const totalHours = timeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 3600; // Convert seconds to hours
     const billableHours = timeEntries.filter(entry => entry.billable).reduce((sum, entry) => sum + (entry.duration || 0), 0) / 3600;
     
-    // Get expense statistics
     const expenseStats = await prisma.expense.aggregate({
       where: {
         projectId: id,
@@ -840,7 +857,6 @@ export const getProjectStats = async (req: Request, res: Response, next: NextFun
       }
     });
 
-    // Get invoice statistics
     const invoiceStats = await prisma.invoice.aggregate({
       where: {
         projectId: id,
@@ -868,7 +884,6 @@ export const getProjectStats = async (req: Request, res: Response, next: NextFun
       }
     });
 
-    // Transform task status to match frontend expectations
     const transformedTaskStats = taskStats.map(stat => ({
       status: stat.status.toLowerCase(),
       count: stat._count.id
@@ -921,10 +936,6 @@ export const getProjectStats = async (req: Request, res: Response, next: NextFun
   }
 };
 
-/**
- * Get all available project requests for freelancers
- * GET /projects/requests
- */
 export const getAvailableProjectRequests = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id;
@@ -937,8 +948,8 @@ export const getAvailableProjectRequests = async (req: AuthenticatedRequest, res
 
     const where: any = {
       OR: [
-        { assignedTo: null }, // Unassigned requests
-        { assignedTo: userId } // Assigned to current user
+        { assignedTo: null }, 
+        { assignedTo: userId } 
       ]
     };
 
@@ -996,22 +1007,16 @@ export const getAvailableProjectRequests = async (req: AuthenticatedRequest, res
   }
 };
 
-/**
- * Accept a project request and assign to freelancer
- * POST /projects/requests/:id/accept
- */
 export const acceptProjectRequest = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id;
     const requestId = req.params.id;
     const { freelancerResponse, quotedAmount } = req.body;
 
-    // Validate input
     if (!requestId) {
       throw new CustomError('Request ID is required', 400);
     }
 
-    // Find the project request
     const projectRequest = await prisma.projectRequest.findFirst({
       where: {
         id: requestId,
@@ -1026,7 +1031,6 @@ export const acceptProjectRequest = async (req: AuthenticatedRequest, res: Respo
       throw new CustomError('Project request not found or already processed', 404);
     }
 
-    // Update the project request
     const updatedRequest = await prisma.projectRequest.update({
       where: { id: requestId },
       data: {
@@ -1068,22 +1072,17 @@ export const acceptProjectRequest = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
-/**
- * Convert accepted project request to actual project
- * POST /projects/requests/:id/convert
- */
 export const convertRequestToProject = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.id;
     const requestId = req.params.id;
 
-    // Find the project request
     const projectRequest = await prisma.projectRequest.findFirst({
       where: {
         id: requestId,
         assignedTo: userId,
         status: 'ASSIGNED',
-        projectId: null // Not already converted
+        projectId: null 
       },
       include: {
         client: true
@@ -1094,7 +1093,6 @@ export const convertRequestToProject = async (req: AuthenticatedRequest, res: Re
       throw new CustomError('Project request not found, not assigned to you, or already converted', 404);
     }
 
-    // Create the project
     const project = await prisma.project.create({
       data: {
         clientId: projectRequest.clientId,
@@ -1128,15 +1126,13 @@ export const convertRequestToProject = async (req: AuthenticatedRequest, res: Re
       }
     });
 
-    // Assign the freelancer to the client so the client appears in the freelancer's client list
     await prisma.client.update({
       where: { id: projectRequest.clientId },
       data: {
-        userId: userId // Link the client to the freelancer
+        userId: userId 
       }
     });
 
-    // Update the project request to mark it as converted
     await prisma.projectRequest.update({
       where: { id: requestId },
       data: {
@@ -1161,7 +1157,6 @@ export const convertRequestToProject = async (req: AuthenticatedRequest, res: Re
   }
 };
 
-// Expense validation schemas
 const createExpenseSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   amount: positiveDecimalSchema,
@@ -1180,10 +1175,6 @@ const updateExpenseSchema = z.object({
   receipt: z.string().optional()
 });
 
-/**
- * Create expense for project
- * POST /api/v1/projects/:id/expenses
- */
 export const createProjectExpense = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
@@ -1222,10 +1213,6 @@ export const createProjectExpense = async (req: Request, res: Response, next: Ne
   }
 };
 
-/**
- * Update expense
- * PUT /api/v1/projects/:id/expenses/:expenseId
- */
 export const updateProjectExpense = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id, expenseId } = req.params;
@@ -1245,7 +1232,6 @@ export const updateProjectExpense = async (req: Request, res: Response, next: Ne
       throw new CustomError('Project not found', 404);
     }
 
-    // Check if expense exists and belongs to this project and user
     const existingExpense = await prisma.expense.findFirst({
       where: {
         id: expenseId,
@@ -1276,10 +1262,6 @@ export const updateProjectExpense = async (req: Request, res: Response, next: Ne
   }
 };
 
-/**
- * Delete expense
- * DELETE /api/v1/projects/:id/expenses/:expenseId
- */
 export const deleteProjectExpense = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id, expenseId } = req.params;
@@ -1298,7 +1280,6 @@ export const deleteProjectExpense = async (req: Request, res: Response, next: Ne
       throw new CustomError('Project not found', 404);
     }
 
-    // Check if expense exists and belongs to this project and user
     const existingExpense = await prisma.expense.findFirst({
       where: {
         id: expenseId,
@@ -1312,7 +1293,6 @@ export const deleteProjectExpense = async (req: Request, res: Response, next: Ne
       throw new CustomError('Expense not found', 404);
     }
 
-    // Soft delete
     await prisma.expense.update({
       where: { id: expenseId },
       data: { deletedAt: new Date() }

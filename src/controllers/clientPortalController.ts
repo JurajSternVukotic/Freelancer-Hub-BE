@@ -14,10 +14,6 @@ const projectRequestSchema = z.object({
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM')
 });
 
-/**
- * Create project request
- * POST /client-portal/project-requests
- */
 export const createProjectRequest = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -52,10 +48,6 @@ export const createProjectRequest = async (req: ClientAuthenticatedRequest, res:
   }
 };
 
-/**
- * Get client's project requests
- * GET /client-portal/project-requests
- */
 export const getProjectRequests = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -87,10 +79,6 @@ export const getProjectRequests = async (req: ClientAuthenticatedRequest, res: R
   }
 };
 
-/**
- * Get specific project request
- * GET /client-portal/project-requests/:id
- */
 export const getProjectRequest = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -129,10 +117,6 @@ export const getProjectRequest = async (req: ClientAuthenticatedRequest, res: Re
   }
 };
 
-/**
- * Get client's invoices
- * GET /client-portal/invoices
- */
 export const getClientInvoices = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -196,10 +180,6 @@ export const getClientInvoices = async (req: ClientAuthenticatedRequest, res: Re
   }
 };
 
-/**
- * Get specific invoice
- * GET /client-portal/invoices/:id
- */
 export const getClientInvoice = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -258,10 +238,6 @@ export const getClientInvoice = async (req: ClientAuthenticatedRequest, res: Res
   }
 };
 
-/**
- * Mark invoice as paid (client confirms payment)
- * POST /client-portal/invoices/:id/pay
- */
 export const markInvoiceAsPaid = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -311,10 +287,6 @@ export const markInvoiceAsPaid = async (req: ClientAuthenticatedRequest, res: Re
   }
 };
 
-/**
- * Get client dashboard summary
- * GET /client-portal/dashboard
- */
 export const getClientDashboard = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
@@ -425,14 +397,13 @@ export const getClientDashboard = async (req: ClientAuthenticatedRequest, res: R
   }
 };
 
-/**
- * Get client invoice PDF
- * GET /client-portal/invoices/:id/pdf
- */
 export const getClientInvoicePdf = async (req: ClientAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const clientId = req.client!.id;
     const { id } = req.params;
+    
+    console.log('PDF generation requested for invoice:', id, 'by client:', clientId);
+    
     uuidSchema.parse(id);
 
     const invoice = await prisma.invoice.findFirst({
@@ -472,14 +443,30 @@ export const getClientInvoicePdf = async (req: ClientAuthenticatedRequest, res: 
       throw new CustomError('Invoice not found', 404);
     }
 
-    const pdfBuffer = await PdfService.generateInvoicePdf(invoice as any);
+    console.log('Found invoice for PDF generation:', {
+      id: invoice.id,
+      number: invoice.number,
+      clientCompany: invoice.client.company,
+      itemsCount: invoice.items.length
+    });
+
+    let pdfBuffer;
+    try {
+      pdfBuffer = await PdfService.generateInvoicePdf(invoice as any);
+    } catch (pdfError) {
+      console.error('PDF generation error:', pdfError);
+      throw new CustomError('Failed to generate PDF. Please try again later.', 500);
+    }
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="racun-${invoice.number}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
 
+    console.log('Sending PDF response for invoice:', invoice.number);
     res.send(pdfBuffer);
+    
   } catch (error) {
+    console.error('Client portal PDF endpoint error:', error);
     next(error);
   }
 };

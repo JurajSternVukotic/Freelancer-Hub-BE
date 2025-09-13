@@ -84,26 +84,27 @@ model Service {
 }
 
 model Project {
-  id          String          @id @default(uuid()) @db.Uuid
-  clientId    String          @db.Uuid
-  ownerId     String          @db.Uuid
-  name        String
-  status      ProjectStatus   @default(PLANNING)
-  startDate   DateTime?
-  endDate     DateTime?
-  budget      Decimal?        @db.Decimal(10, 2)
-  description String?
-  isActive    Boolean         @default(true)
-  deletedAt   DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  priority    ProjectPriority @default(MEDIUM)
-  expenses    Expense[]
-  invoices    Invoice[]
-  client      Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id])
-  proposals   Proposal[]
-  tasks       Task[]
+  id             String          @id @default(uuid()) @db.Uuid
+  clientId       String          @db.Uuid
+  ownerId        String          @db.Uuid
+  name           String
+  status         ProjectStatus   @default(PLANNING)
+  startDate      DateTime?
+  endDate        DateTime?
+  budget         Decimal?        @db.Decimal(10, 2)
+  estimatedHours Decimal?        @db.Decimal(8, 2)
+  description    String?
+  isActive       Boolean         @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  priority       ProjectPriority @default(MEDIUM)
+  expenses       Expense[]
+  invoices       Invoice[]
+  client         Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  owner          User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  proposals      Proposal[]
+  tasks          Task[]
 
   @@index([clientId])
   @@index([ownerId])

@@ -3,29 +3,29 @@ import { InvoiceWithItems } from './invoiceService';
 
 export class PdfService {
   static async generateInvoicePdf(invoice: InvoiceWithItems): Promise<Buffer> {
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ]
-    });
-
+    console.log('Starting PDF generation for invoice:', invoice.id);
+    
+    let browser;
     try {
+      const isDocker = process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV === 'true';
+      
+      browser = await puppeteer.launch({
+        headless: true,
+        executablePath: isDocker ? '/usr/bin/chromium-browser' : undefined,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+
       const page = await browser.newPage();
       
       const htmlContent = this.generateInvoiceHtml(invoice);
+      console.log('Generated HTML content length:', htmlContent.length);
       
       await page.setContent(htmlContent, {
-        waitUntil: 'networkidle0'
+        waitUntil: 'networkidle0',
+        timeout: 30000
       });
+
+      console.log('HTML content loaded, generating PDF...');
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -35,12 +35,24 @@ export class PdfService {
           right: '20px',
           bottom: '20px',
           left: '20px'
-        }
+        },
+        timeout: 30000
       });
 
+      console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes');
       return Buffer.from(pdfBuffer);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      await browser.close();
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
     }
   }
 

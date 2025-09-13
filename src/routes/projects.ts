@@ -14,15 +14,15 @@ router.post('/requests/:id/accept', authenticate, acceptProjectRequest);
 
 router.post('/requests/:id/convert', authenticate, convertRequestToProject);
 
-router.get('/:id', getProject);
+router.get('/:id', authenticate, getProject);
 
-router.put('/:id', updateProject);
+router.put('/:id', authenticate, updateProject);
 
-router.delete('/:id', deleteProject);
+router.delete('/:id', authenticate, deleteProject);
 
-router.get('/:id/tasks', getProjectTasks);
+router.get('/:id/tasks', authenticate, getProjectTasks);
 
-router.get('/:id/time-entries', getProjectTimeEntries);
+router.get('/:id/time-entries', authenticate, getProjectTimeEntries);
 
 router.get('/:id/expenses', authenticate, getProjectExpenses);
 
@@ -32,8 +32,8 @@ router.put('/:id/expenses/:expenseId', authenticate, updateProjectExpense);
 
 router.delete('/:id/expenses/:expenseId', authenticate, deleteProjectExpense);
 
-router.get('/:id/invoices', getProjectInvoices);
+router.get('/:id/invoices', authenticate, getProjectInvoices);
 
-router.get('/:id/stats', getProjectStats);
+router.get('/:id/stats', authenticate, getProjectStats);
 
 export default router;
